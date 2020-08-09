@@ -3,7 +3,6 @@ import numpy as np
 import random
 
 
-
 def get_random_crop_size_and_center(image_height, image_width):
     valid_crop = False
     trys = 0

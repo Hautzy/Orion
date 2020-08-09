@@ -1,6 +1,9 @@
-import config
+import os
+import config as c
 import numpy as np
-from preprocessing.PreprocessingProcess import PreprocessingProcess
+
+from preprocessing.pixel_normalizer import PixelNormalizer
+from preprocessing.preprocessing_process import PreprocessingProcess
 
 
 class PreprocessingPool():
@@ -13,6 +16,7 @@ class PreprocessingPool():
     def start(self):
         self.start_processes()
         self.join_processes()
+        self.combine_results()
 
 
     def start_processes(self):
@@ -31,10 +35,18 @@ class PreprocessingPool():
         return processes
 
     def create_workload_packages(self):
-        raw_data_image_paths = config.get_all_files_in_folder(config.FOLDER_PATH_RAW_DATA)
+        raw_data_image_paths = c.get_all_files_in_folder(c.FOLDER_PATH_RAW_DATA)
         data_length = len(raw_data_image_paths)
         package_size = int(np.ceil(data_length / self.process_nom))
         workload_packages = list()
         for i in range(0, data_length, package_size):
             workload_packages.append(raw_data_image_paths[i: i + package_size])
         return workload_packages
+
+    def combine_results(self):
+        with open(c.FILE_TOTAL_IMAGE_CROP_META_CROSS_REFERENCE, 'w') as total_file:
+            for i, process in enumerate(self.processes):
+                idx = process.id
+                with open(f'{c.FOLDER_PATH_PREPROCESSING}{os.sep}{idx}{c.FILE_PART_IMAGE_CROP_META_CORSS_REFERENCE}', 'r') as part_file:
+                    total_file.writelines(part_file.readlines())
+

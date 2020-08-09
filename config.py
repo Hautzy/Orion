@@ -5,15 +5,13 @@ from utils.logger import Logger
 
 # folders
 FOLDER_PATH_MAIN_OUT = '../out'
-FOLDER_PATH_PREPROCESSING = FOLDER_PATH_MAIN_OUT + os.sep + 'proprocessing'
+FOLDER_PATH_PREPROCESSING = FOLDER_PATH_MAIN_OUT + os.sep + 'preprocessing'
 
 FOLDER_PATH_MAIN_IN = 'in'
 FOLDER_PATH_RAW_DATA = FOLDER_PATH_MAIN_IN + os.sep + 'raw_data'
 # files
-FILE_SAMPLE_CROPPED_IMAGE = '_cropped_images.jpg'
-FILE_PATH_SAMPLE_CROP_TARGET = '_crop_target.jpg'
-FILE_PATH_SAMPLE_CROP_MAP = '_crop_map.jpg'
-FILE_PATH_SAMPLE_META = '_meta.pkl'
+FILE_PART_IMAGE_CROP_META_CORSS_REFERENCE = '_crop_metas.csv'
+FILE_TOTAL_IMAGE_CROP_META_CROSS_REFERENCE = FOLDER_PATH_PREPROCESSING + os.sep + 'total_crop_metas.csv'
 
 # image constraints
 MIN_SAMPLE_WIDTH = 70
@@ -56,9 +54,13 @@ def clear_folders():
         shutil.rmtree(FOLDER_PATH_MAIN_OUT, ignore_errors=True)
 
 
-def get_all_files_in_folder(folder_path):
+def get_all_files_in_folder(folder_path, filter_method=None):
     paths = list()
     for subdir, dirs, files in os.walk(folder_path):
         for file in files:
-            paths.append(os.path.join(subdir, file))
+            if filter_method is not None:
+                if filter_method(file):
+                    paths.append(os.path.join(subdir, file))
+            else:
+                paths.append(os.path.join(subdir, file))
     return paths
