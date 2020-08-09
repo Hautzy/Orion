@@ -14,6 +14,11 @@ def read_all_uuids():
     return uuids
 
 
+def get_latest_total_mean():
+    with open(c.FILE_TOTAL_IMAGE_MEAN, 'rb') as f:
+        return np.load(f)[0]
+
+
 class PixelNormalizer(DivideAndConquerPool):
 
     def __init__(self, indices, process_nom):

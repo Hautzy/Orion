@@ -1,49 +1,49 @@
 import os
 import uuid
+import numpy as np
 from pickle import HIGHEST_PROTOCOL, dump, load
+
+import torch
 
 import config as c
 
 from PIL import Image
 
+from preprocessing.crop_meta import convert_str_to_crop_meta
+
 
 class Sample:
 
-    def __init__(self, cropped_image, crop_target, crop_map, meta, uuidx=None):
-        if uuidx is not None:
-            self.uuid = uuidx
-        else:
-            self.uuid = uuid.uuid4()
-        self.cropped_image = cropped_image
-        self.crop_target = crop_target
-        self.crop_map = crop_map
-        self.meta = meta
+    def __init__(self, X, y, map, crop_meta):
+        self.X = X
+        self.y = y
+        self.map = map
+        self.crop_meta = crop_meta
 
-    def save(self, folder):
-        Image.fromarray(self.cropped_image).save(self.s_create_path(folder, c.FILE_SAMPLE_CROPPED_IMAGE))
-        Image.fromarray(self.crop_target).save(self.s_create_path(folder, c.FILE_PATH_SAMPLE_CROP_TARGET))
-        Image.fromarray(self.crop_map).save(self.s_create_path(folder, c.FILE_PATH_SAMPLE_CROP_MAP))
-        with open(self.s_create_path(folder, c.FILE_PATH_SAMPLE_META), 'wb') as f:
-            dump(self.meta, f, protocol=HIGHEST_PROTOCOL)
-
-    def s_create_path(self, folder, postfix):
-        return Sample.create_path(self.uuid, folder, postfix)
+    def to(self, device):
+        self.X = self.X.to(device)
+        self.y = self.y.to(device)
+        self.map = self.map.to(device)
+        return self
 
     @staticmethod
     def create_path(uuid, folder, postfix):
         return os.path.join(folder, f'{uuid}{postfix}')
 
     @staticmethod
-    def load(folder, uuid):
-        cropped_image = Image.open(Sample.create_path(uuid, folder, c.FILE_SAMPLE_CROPPED_IMAGE))
-        crop_target = Image.open(Sample.create_path(uuid, folder, c.FILE_PATH_SAMPLE_CROP_TARGET))
-        crop_map = Image.open(Sample.create_path(uuid, folder, c.FILE_PATH_SAMPLE_CROP_MAP))
-        with open(Sample.create_path(uuid, folder, c.FILE_PATH_SAMPLE_META), 'rb') as f:
-            meta = load(f)
-        sample = Sample(cropped_image.numpy(), crop_target.numpy(), crop_map.numpy(), meta, uuid)
-        return sample
+    def load(sample_str):
+        parts = sample_str.split(';')
+        image_uuid = parts[0]
+        crop_meta = convert_str_to_crop_meta(';'.join(parts[1:]))
 
-class Meta:
-    def __init__(self, crop_size, crop_center):
-        self.crop_size = crop_size
-        self.crop_center = crop_center
+        with open(f'{c.FOLDER_PATH_PREPROCESSING}{os.sep}{image_uuid}.npy', 'rb') as f:
+            np_X = np.load(f)
+            t_X = torch.from_numpy(np_X)
+
+        (st_x, st_y), (en_x, en_y) = crop_meta.get_coordinates()
+        t_y = t_X[st_y:en_y, st_x:en_x].clone().detach()
+        t_X[st_y:en_y, st_x:en_x] = c.MIN_PIXEL_VALUE
+        t_map = torch.zeros(t_X.shape)
+        t_map[st_y:en_y, st_x:en_x] = 1.0
+
+        return Sample(t_X, t_y, t_map, crop_meta).to(c.device)

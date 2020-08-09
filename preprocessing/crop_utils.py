@@ -23,7 +23,6 @@ def get_random_crop_size_and_center(image_height, image_width):
     center_y = random.randrange(start_y, end_y)
     return (crop_height, crop_width), (center_y, center_x)
 
-
 # calculate start and end x/y coordinates for crop sub-image based on crop_size and crop_center
 def calculate_crop_target_coordinates(crop_size, crop_center):
     st_x = int(crop_center[1] - (crop_size[1] - 1) / 2)

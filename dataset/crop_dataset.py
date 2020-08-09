@@ -8,15 +8,16 @@ from utils.logger import Logger
 
 
 class CropDataset(Dataset):
-    def __init__(self, name, sample_uuids, folder):
-        self.sample_uuids = sample_uuids
-        self.folder = folder
-        self.sample_count = len(sample_uuids)
+    def __init__(self, name, indices, total_crop_metas):
+        self.indices = indices
+        self.total_crop_metas = total_crop_metas
+        self.sample_count = len(indices)
         self.logger = Logger(f'dataset-{name}')
 
     def __getitem__(self, index):
-        uuid = self.sample_uuids[index]
-        return Sample.load(self.folder, uuid)
+        ind = self.indices[index]
+        sample_str = self.total_crop_metas[ind]
+        return Sample.load(sample_str)
 
     def __len__(self):
         return self.sample_count

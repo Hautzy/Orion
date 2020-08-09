@@ -1,11 +1,14 @@
 import os
 import shutil
 
+import torch
+
 from utils.logger import Logger
 
 # folders
 FOLDER_PATH_MAIN_OUT = '../out'
 FOLDER_PATH_PREPROCESSING = FOLDER_PATH_MAIN_OUT + os.sep + 'preprocessing'
+FOLDER_PATH_INSPECTION = FOLDER_PATH_MAIN_OUT + os.sep + 'inspection'
 
 FOLDER_PATH_MAIN_IN = 'in'
 FOLDER_PATH_RAW_DATA = FOLDER_PATH_MAIN_IN + os.sep + 'raw_data'
@@ -35,13 +38,16 @@ PADDING_VALUE = 0
 MIN_PIXEL_VALUE = 1
 MAX_PIXEL_VALUE = 255
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 logger = Logger('CONFIG')
+logger.log(f'device: {device}')
 
 
 def create_folders():
     logger.log('creating folder structure')
     create_folder(FOLDER_PATH_MAIN_OUT)
     create_folder(FOLDER_PATH_PREPROCESSING)
+    create_folder(FOLDER_PATH_INSPECTION)
 
 
 def create_folder(path):

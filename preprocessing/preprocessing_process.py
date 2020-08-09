@@ -77,12 +77,3 @@ class PreprocessingProcess(Process):
         if crop_size is None or crop_center is None:
             return None
         return CropMeta(crop_size, crop_center)
-
-        '''(st_x, st_y), (en_x, en_y) = calculate_crop_target_coordinates(crop_size, crop_center)
-        cropped_image = np.copy(image_array)
-        crop_target = cropped_image[st_y:en_y, st_x:en_x].copy()
-        cropped_image[st_y:en_y, st_x:en_x] = c.MIN_PIXEL_VALUE
-        crop_map = np.full(shape=cropped_image.shape, fill_value=c.PADDING_VALUE, dtype='uint8')
-        crop_map[st_y:en_y, st_x:en_x] = c.MAX_PIXEL_VALUE
-        
-        return Sample(cropped_image, crop_target, crop_map, Meta(crop_size, crop_center))'''

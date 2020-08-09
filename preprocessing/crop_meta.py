@@ -5,6 +5,13 @@ class CropMeta():
         self.center_x = crop_center[1]
         self.center_y = crop_center[0]
 
+    def get_coordinates(self):
+        st_x = int(self.center_x - (self.width - 1) / 2)
+        en_x = int(self.center_x + (self.width - 1) / 2) + 1
+        st_y = int(self.center_y - (self.height - 1) / 2)
+        en_y = int(self.center_y + (self.height - 1) / 2) + 1
+        return (st_x, st_y), (en_x, en_y)
+
     def __str__(self):
         return f'{self.width};{self.height};{self.center_x};{self.center_y}'
 

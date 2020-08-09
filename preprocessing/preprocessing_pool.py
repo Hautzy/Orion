@@ -6,6 +6,7 @@ import config as c
 from preprocessing.preprocessing_process import PreprocessingProcess
 
 
+# TODO: inh. from div. and con.
 class PreprocessingPool():
 
     def __init__(self, process_nom=1):

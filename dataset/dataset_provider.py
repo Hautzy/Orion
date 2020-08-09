@@ -41,7 +41,10 @@ class DataSetProvider:
         normalizer.start_fit()
         normalizer.start_transform(total_sample_len)
 
-        #train_set = CropDataset('train', train_set_indices, self.data_folder)
-        #test_set = CropDataset('test', test_set_indices, self.data_folder)
-        #validation_set = CropDataset('validation', validation_set_indices, self.data_folder)
-        #return train_set, test_set, validation_set
+        with open(c.FILE_TOTAL_IMAGE_CROP_META_CROSS_REFERENCE, 'r') as f:
+            total_crop_metas = f.readlines()
+
+        train_set = CropDataset('train', train_set_indices, total_crop_metas)
+        test_set = CropDataset('test', test_set_indices, total_crop_metas)
+        validation_set = CropDataset('validation', validation_set_indices, total_crop_metas)
+        return train_set, test_set, validation_set
