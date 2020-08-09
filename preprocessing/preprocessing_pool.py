@@ -1,8 +1,8 @@
 import os
-import config as c
+
 import numpy as np
 
-from preprocessing.pixel_normalizer import PixelNormalizer
+import config as c
 from preprocessing.preprocessing_process import PreprocessingProcess
 
 

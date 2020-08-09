@@ -8,5 +8,5 @@ c.create_folders()
 prepro_pool = PreprocessingPool(process_nom=1)
 prepro_pool.start()
 
-#dsp = DataSetProvider(c.FOLDER_PATH_PREPROCESSING)
-#dsp.create_datasets()
+dsp = DataSetProvider(c.FOLDER_PATH_PREPROCESSING)
+dsp.create_datasets()
