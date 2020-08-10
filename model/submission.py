@@ -22,13 +22,14 @@ def mse(target_array, prediction_array, ind):
             f"Target shape is {target_array.shape} but prediction shape is {prediction_array.shape}. Prediction {ind}")
     prediction_array, target_array = np.asarray(prediction_array, np.float64), np.asarray(target_array, np.float64)
     other_test = np.mean((prediction_array - target_array) ** 2)
-    simple_test = standard_mse(torch.from_numpy(prediction_array), torch.from_numpy(target_array))
+    #simple_test = standard_mse(torch.from_numpy(prediction_array), torch.from_numpy(target_array))
     return other_test
 
 
 # create mean MSE for all test samples based on the prediction file and target file
-def scoring():
-    with open(c.FILE_SUBMISSION_TESTING_PREDICTIONS, 'rb') as pfh:
+def scoring(exp_name):
+    exp_path = c.FOLDER_PATH_MAIN_EXPERIMENTS + os.sep + exp_name
+    with open(exp_path + os.sep + c.PKL_PREDICTIONS, 'rb') as pfh:
         predictions = pkl.load(pfh)
     with open(c.FILE_SUBMISSION_TESTING_TARGETS, 'rb') as tfh:
         targets = pkl.load(tfh)
@@ -40,6 +41,8 @@ def scoring():
         ind += 1
     mean_loss = np.mean(mses)
     logger.log(f'mean loss: {mean_loss}')
+    with open(exp_path + os.sep + 'submission_results.txt', 'w+') as fh:
+        print(f'loss: {mean_loss}', file=fh)
     return mean_loss
 
 
@@ -51,7 +54,8 @@ def create_submission_predictions(experiment_name):
     crop_sizes = test_set['crop_sizes']
     crop_centers = test_set['crop_centers']
     images = test_set['images']
-    model = torch.load(c.FOLDER_PATH_EXPERIMENTS + os.sep + experiment_name + os.sep + c.BEST_MODEL)
+    exp_path = c.FOLDER_PATH_MAIN_EXPERIMENTS + os.sep + experiment_name
+    model = torch.load(exp_path + os.sep + c.PKL_BEST_MODEL)
     total_pixel_mean = get_latest_total_mean()
     outputs = list()
 
@@ -83,7 +87,7 @@ def create_submission_predictions(experiment_name):
         y_shape = sample.y.shape
         y[0, 0, :y_shape[0], :y_shape[1]] = sample.y
 
-        output = model(X)
+        output = model(X, [crop_meta])
         output = output.cpu().detach()
         output += total_pixel_mean
         output *= c.MAX_PIXEL_VALUE
@@ -91,5 +95,5 @@ def create_submission_predictions(experiment_name):
 
         outputs.append(py_output[0, 0, :crop_meta.height, :crop_meta.width])
         print(f'>>> tested sample {ind + 1}')
-    with open(c.FILE_SUBMISSION_TESTING_PREDICTIONS, 'wb') as f:
+    with open(exp_path + os.sep + c.PKL_PREDICTIONS, 'wb') as f:
         dump(outputs, f)

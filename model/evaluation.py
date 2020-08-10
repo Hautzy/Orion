@@ -10,7 +10,7 @@ def evaluate_model(model, data_loader):
     mse = nn.MSELoss().to(c.device)
 
     with torch.no_grad():
-        for i, (X, y, meta) in enumerate(data_loader):
-            output = model(X)
+        for i, (X, y, metas) in enumerate(data_loader):
+            output = model(X, metas)
             mses[i] = mse(y, output)
     return np.mean(mses)
