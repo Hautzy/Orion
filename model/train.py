@@ -43,6 +43,8 @@ def train(experiment_name, params):
 
     for current_epoch in range(max_epochs):
         for X, y, metas in train_loader:
+            X = X.to(device)
+            y = y.to(device)
             outputs = model(X, metas)
             optimizer.zero_grad()
             loss = mse(outputs, y)
@@ -58,6 +60,7 @@ def train(experiment_name, params):
             if current_batch % validation_set_per_batch == 0:
                 best_validation_loss = test_validation_set(best_validation_loss, exp_path, model, validation_loader,
                                                            validation_losses)
+            del X, y, outputs
         current_batch = 0
         learning_rate /= 10
         weight_decay /= 4
@@ -78,7 +81,7 @@ def train(experiment_name, params):
         print(f'Training', file=fh)
         print(f"Losses: {losses}", file=fh)
         print(f"Validation Losses: {validation_losses}", file=fh)
-
+    del model, mse
     print('Finished Training')
 
 

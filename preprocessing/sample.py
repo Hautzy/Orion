@@ -20,12 +20,6 @@ class Sample:
         self.map = map
         self.crop_meta = crop_meta
 
-    def to(self, device):
-        self.X = self.X.to(device)
-        self.y = self.y.to(device)
-        self.map = self.map.to(device)
-        return self
-
     @staticmethod
     def create_path(uuid, folder, postfix):
         return os.path.join(folder, f'{uuid}{postfix}')
@@ -46,4 +40,4 @@ class Sample:
         t_map = torch.zeros(t_X.shape)
         t_map[st_y:en_y, st_x:en_x] = c.MAP_POS
 
-        return Sample(t_X, t_y, t_map, crop_meta).to(c.device)
+        return Sample(t_X, t_y, t_map, crop_meta)

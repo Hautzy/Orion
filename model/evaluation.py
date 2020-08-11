@@ -11,6 +11,9 @@ def evaluate_model(model, data_loader):
 
     with torch.no_grad():
         for i, (X, y, metas) in enumerate(data_loader):
+            X = X.to(c.device)
+            y = y.to(c.device)
             output = model(X, metas)
             mses[i] = mse(y, output)
+            del X, y
     return np.mean(mses)

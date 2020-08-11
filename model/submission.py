@@ -56,6 +56,7 @@ def create_submission_predictions(experiment_name):
     images = test_set['images']
     exp_path = c.FOLDER_PATH_MAIN_EXPERIMENTS + os.sep + experiment_name
     model = torch.load(exp_path + os.sep + c.PKL_BEST_MODEL)
+    model = model.to(c.device)
     total_pixel_mean = get_latest_total_mean()
     outputs = list()
 
@@ -77,7 +78,7 @@ def create_submission_predictions(experiment_name):
         t_map = torch.zeros(t_X.shape)
         t_map[st_y:en_y, st_x:en_x] = c.MAP_POS
 
-        sample = Sample(t_X, t_y, t_map, crop_meta).to(c.device)
+        sample = Sample(t_X, t_y, t_map, crop_meta)
 
         X = torch.zeros(size=(1, 2, c.MAX_SAMPLE_WIDTH, c.MAX_SAMPLE_HEIGHT)).to(c.device)
         y = torch.zeros(size=(1, 1, c.MAX_CROP_SIZE, c.MAX_CROP_SIZE)).to(c.device)
@@ -88,12 +89,14 @@ def create_submission_predictions(experiment_name):
         y[0, 0, :y_shape[0], :y_shape[1]] = sample.y
 
         output = model(X, [crop_meta])
-        output = output.cpu().detach()
-        output += total_pixel_mean
-        output *= c.MAX_PIXEL_VALUE
-        py_output = output.numpy().astype('uint8')
+        cpu_output = output.cpu().detach()
+        del output
+        cpu_output += total_pixel_mean
+        cpu_output *= c.MAX_PIXEL_VALUE
+        py_output = cpu_output.numpy().astype('uint8')
 
         outputs.append(py_output[0, 0, :crop_meta.height, :crop_meta.width])
         print(f'>>> tested sample {ind + 1}')
+    del model
     with open(exp_path + os.sep + c.PKL_PREDICTIONS, 'wb') as f:
         dump(outputs, f)

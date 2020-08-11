@@ -9,8 +9,8 @@ from dataset.dataset_provider import DataSetProvider
 def crop_collate_fn(batch_as_list):
     batch_length = len(batch_as_list)
 
-    X = torch.zeros(size=(batch_length, 2, c.MAX_SAMPLE_WIDTH, c.MAX_SAMPLE_HEIGHT)).to(c.device)
-    y = torch.zeros(size=(batch_length, 1, c.MAX_CROP_SIZE, c.MAX_CROP_SIZE)).to(c.device)
+    X = torch.zeros(size=(batch_length, 2, c.MAX_SAMPLE_WIDTH, c.MAX_SAMPLE_HEIGHT))
+    y = torch.zeros(size=(batch_length, 1, c.MAX_CROP_SIZE, c.MAX_CROP_SIZE))
     crop_metas = list()
 
     for i, sample in enumerate(batch_as_list):

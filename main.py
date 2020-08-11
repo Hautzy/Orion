@@ -31,8 +31,9 @@ params = [{
     'learning_rate': 1e-3,
     'weight_decay': 1e-5,
     'model': SimpleCnn(1),
-    'exp_name': 'exp_01'
-    }, {
+    'exp_name': 'exp_gpu_free_test'
+    }]
+''', {
         'learning_rate': 1e-3,
         'weight_decay': 1e-5,
         'model': SimpleCnn(2),
@@ -62,7 +63,7 @@ params = [{
         'weight_decay': 1e-5,
         'model': SimpleCnn(7),
         'exp_name': 'exp_07'
-    }]
+    }]'''
 
 for param in params:
     start_experiment(param)
