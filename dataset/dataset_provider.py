@@ -39,7 +39,7 @@ class DataSetProvider:
 
         normalizer = PixelNormalizer(indices=train_set_indices, process_nom=process_nom)
         normalizer.start_fit()
-        normalizer.start_transform(total_sample_len)
+        #normalizer.start_transform(total_sample_len)
 
     def create_datasets(self):
         train_set_indices, test_set_indices, validation_set_indices = self.determine_datasets_sample_distribution()

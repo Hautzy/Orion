@@ -4,6 +4,8 @@ from pickle import dump, load
 import torch
 import dill as pkl
 import numpy as np
+from PIL import Image
+
 import config as c
 
 
@@ -51,6 +53,9 @@ def create_submission_predictions(experiment_name):
     with open(c.FILE_SUBMISSION_TESTING_RAW_DATA, 'rb') as f:
         test_set = load(f)
 
+    with open(c.FILE_SUBMISSION_TESTING_TARGETS, 'rb') as tfh:
+        targets = pkl.load(tfh)
+
     crop_sizes = test_set['crop_sizes']
     crop_centers = test_set['crop_centers']
     images = test_set['images']
@@ -65,16 +70,15 @@ def create_submission_predictions(experiment_name):
         crop_center = crop_centers[ind]
         image = images[ind]
         image = np.array(image, dtype='float64')
-
         image /= c.MAX_PIXEL_VALUE
-        image -= total_pixel_mean
+        #image -= total_pixel_mean
 
         crop_meta = CropMeta(crop_size, crop_center)
 
         t_X = torch.from_numpy(image)
         (st_x, st_y), (en_x, en_y) = crop_meta.get_coordinates()
         t_y = t_X[st_y:en_y, st_x:en_x].clone().detach()
-        t_X[st_y:en_y, st_x:en_x] = c.MIN_PIXEL_VALUE
+        t_X[st_y:en_y, st_x:en_x] = c.PADDING_VALUE
         t_map = torch.zeros(t_X.shape)
         t_map[st_y:en_y, st_x:en_x] = c.MAP_POS
 
@@ -91,11 +95,10 @@ def create_submission_predictions(experiment_name):
         output = model(X, [crop_meta])
         cpu_output = output.cpu().detach()
         del output
-        cpu_output += total_pixel_mean
+        #cpu_output += total_pixel_mean
         cpu_output *= c.MAX_PIXEL_VALUE
-        py_output = cpu_output.numpy().astype('uint8')
 
-        outputs.append(py_output[0, 0, :crop_meta.height, :crop_meta.width])
+        outputs.append(cpu_output[0, 0, :crop_meta.height, :crop_meta.width])
         print(f'>>> tested sample {ind + 1}')
     del model
     with open(exp_path + os.sep + c.PKL_PREDICTIONS, 'wb') as f:

@@ -1,5 +1,6 @@
 import config as c
 from dataset.dataset_provider import DataSetProvider
+from model.evaluation import plot_experiment
 from model.simple_conv_net import SimpleCnn
 from model.submission import create_submission_predictions, scoring
 from model.train import train
@@ -24,16 +25,19 @@ def start_experiment(params):
     create_submission_predictions(exp_name)
     scoring(exp_name)
 
+def only_submission(exp_name):
+    create_submission_predictions(exp_name)
+    scoring(exp_name)
 
-# create_and_scale_data(16)
+
+#create_and_scale_data(16)
 
 params = [{
     'learning_rate': 1e-3,
     'weight_decay': 1e-5,
     'model': SimpleCnn(1),
-    'exp_name': 'exp_gpu_free_test'
-    }]
-''', {
+    'exp_name': 'exp_01'
+    }, {
         'learning_rate': 1e-3,
         'weight_decay': 1e-5,
         'model': SimpleCnn(2),
@@ -63,7 +67,7 @@ params = [{
         'weight_decay': 1e-5,
         'model': SimpleCnn(7),
         'exp_name': 'exp_07'
-    }]'''
+    }]
 
-for param in params:
-    start_experiment(param)
+#for param in params:
+    #start_experiment(param)

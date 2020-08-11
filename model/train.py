@@ -55,7 +55,7 @@ def train(experiment_name, params):
             current_batch += 1
             if current_batch % log_per_batch == 0:
                 logger.log(
-                    f'Epoch[{current_epoch + 1}/{max_epochs}] Batch [{current_batch}/{max_batches_per_epoch}], Loss: {loss.item() * c.MAX_PIXEL_VALUE}')
+                    f'Epoch[{current_epoch + 1}/{max_epochs}] Batch [{current_batch}/{max_batches_per_epoch}], Loss: {loss.item() * 1000}')
 
             if current_batch % validation_set_per_batch == 0:
                 best_validation_loss = test_validation_set(best_validation_loss, exp_path, model, validation_loader,
@@ -71,8 +71,8 @@ def train(experiment_name, params):
     validation_loss = evaluate_model(best_model, validation_loader).item()
     test_loss = evaluate_model(best_model, test_loader).item()
 
-    logger.log(f'Best model validation loss: {validation_loss * c.MAX_PIXEL_VALUE}')
-    logger.log(f'Best model test loss: {test_loss * c.MAX_PIXEL_VALUE}')
+    logger.log(f'Best model validation loss: {validation_loss}')
+    logger.log(f'Best model test loss: {test_loss}')
 
     with open(exp_path + os.sep + c.EXPERIMENT_RESULTS, 'w+') as fh:
         print(f'Best Model', file=fh)
@@ -88,7 +88,7 @@ def train(experiment_name, params):
 def test_validation_set(best_validation_loss, exp_path, model, validation_loader, validation_losses):
     current_validation_loss = evaluate_model(model, validation_loader)
     current_validation_loss = current_validation_loss.item()
-    logger.log(f'validation loss: {current_validation_loss * c.MAX_PIXEL_VALUE}')
+    logger.log(f'validation loss: {current_validation_loss}')
     validation_losses.append(current_validation_loss)
     if current_validation_loss <= best_validation_loss:
         best_validation_loss = current_validation_loss

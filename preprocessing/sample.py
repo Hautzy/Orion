@@ -36,7 +36,7 @@ class Sample:
 
         (st_x, st_y), (en_x, en_y) = crop_meta.get_coordinates()
         t_y = t_X[st_y:en_y, st_x:en_x].clone().detach()
-        t_X[st_y:en_y, st_x:en_x] = c.MIN_PIXEL_VALUE
+        t_X[st_y:en_y, st_x:en_x] = c.PADDING_VALUE
         t_map = torch.zeros(t_X.shape)
         t_map[st_y:en_y, st_x:en_x] = c.MAP_POS
 
