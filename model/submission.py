@@ -71,7 +71,7 @@ def create_submission_predictions(experiment_name):
         image = images[ind]
         image = np.array(image, dtype='float64')
         image /= c.MAX_PIXEL_VALUE
-        #image -= total_pixel_mean
+        #TODO: image -= total_pixel_mean
 
         crop_meta = CropMeta(crop_size, crop_center)
 

@@ -116,7 +116,7 @@ class TransformProcess(Process):
         for i, path in enumerate(self.workload):
             with open(path, 'rb') as f:
                 image_data = np.load(f)
-                image_data -= self.total_mean
+                #TODO: image_data -= self.total_mean
             with open(path, 'wb') as f:
                 np.save(f, image_data)
             cnt += 1
