@@ -26,11 +26,11 @@ def run_experiment(name, model, params):
 
 
 def run_multiple_experiments():
-    names = ['ex1', 'ex2', 'ex3']
-    params = [{'lr':1e-3, 'wd': 1e-5},{'lr':0.001},{'lr':0.001}]
-    models = [SimpleCnn(1),SimpleCnn(1),SimpleCnn(1)]
-    for ind in range(names):
+    names = ['new_exp']
+    params = [{'lr':1e-3, 'wd': 1e-5}]
+    models = [SimpleCnn(1)]
+    for ind in range(len(names)):
         run_experiment(names[ind], models[ind], params[ind])
 
 #create_and_scale_data(16)
-#run_multiple_experiments()
+run_multiple_experiments()

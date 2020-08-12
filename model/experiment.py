@@ -25,8 +25,7 @@ class Stats:
         self.best_validation_loss = np.inf
         self.train_losses = list()
         self.validation_losses = list()
-        self.validation_loss = 0
-        self.test_loss = 0
+        self.best_test_loss = 0
         self.submission_test_loss = 0
 
 
@@ -66,7 +65,7 @@ class Experiment:
                 loss.backward()
                 optimizer.step()
 
-                self.losses.append(loss.item())
+                self.stats.train_losses.append(loss.item())
                 current_batch += 1
                 if current_batch % LOG_PER_BATCHES == 0:
                     self.logger.log(f'Epoch[{current_epoch + 1}/{max_epochs}] '
@@ -84,26 +83,26 @@ class Experiment:
 
     def print_stats(self, validation_loader, test_loader):
         best_model = torch.load(f'{self.path}{os.sep}{BEST_MODEL}').to(c.device)
-        validation_loss = self.evaluate_model(best_model, validation_loader).item()
         test_loss = self.evaluate_model(best_model, test_loader).item()
 
-        self.stats.validation_loss = validation_loss
-        self.stats.test_loss = test_loss
+        self.stats.best_test_loss = test_loss
 
         submission_outputs = self.create_submission_predictions(best_model)
         self.scoring(submission_outputs)
 
-        self.logger.log(f'Best model validation loss: {validation_loss}')
+        self.logger.log(f'Best model validation loss: {self.stats.best_validation_loss}')
         self.logger.log(f'Best model test loss: {test_loss}')
 
-        self.plot_loss(self.stats.train_losses)
-        self.plot_loss(self.stats.validation_losses)
+        self.plot_loss(self.stats.train_losses, 'train_losses')
+        self.plot_loss(self.stats.validation_losses, 'validation_losses')
 
         with open(f'{self.path}{os.sep}{REPORT}', 'w+') as f:
-            json.dump(self.stats, f)
+            json_stats = json.dumps(self.stats.__dict__)
+            f.writelines(json_stats)
         del best_model
 
     def plot_loss(self, loss, name):
+        loss = np.array(loss)
         length = loss.shape[0]
         x = np.linspace(0, length, length)
         plt.figure()
@@ -115,8 +114,8 @@ class Experiment:
         current_validation_loss = current_validation_loss.item()
         self.logger.log(f'Validation Loss: {current_validation_loss}')
         self.stats.validation_losses.append(current_validation_loss)
-        if current_validation_loss <= self.best_validation_loss:
-            self.best_validation_loss = current_validation_loss
+        if current_validation_loss <= self.stats.best_validation_loss:
+            self.stats.best_validation_loss = current_validation_loss
             torch.save(model, f'{self.path}{os.sep}{BEST_MODEL}')
 
     @staticmethod
@@ -155,7 +154,7 @@ class Experiment:
             ind += 1
         mean_loss = np.mean(mses)
         self.stats.submission_test_loss = mean_loss
-        self.logger.log(f'mean loss: {mean_loss}')
+        self.logger.log(f'Mean submission loss: {mean_loss}')
 
     @staticmethod
     def submission_mse(target_array, prediction_array):
@@ -202,14 +201,14 @@ class Experiment:
             y[0, 0, :y_shape[0], :y_shape[1]] = sample.y
 
             output = model(X, [crop_meta])
-            cpu_output = output.cpu().detach()
+            cpu_output = output.cpu().detach().numpy()
             del output
             #cpu_output += total_pixel_mean
             cpu_output *= c.MAX_PIXEL_VALUE
 
             outputs.append(cpu_output[0, 0, :crop_meta.height, :crop_meta.width])
-            print(f'>>> tested sample {ind + 1}')
+        self.logger.log(f'Tested {ind+1} samples')
         del model
-        with open(f'{self.path}{os.path}{PREDICTIONS}', 'wb') as f:
+        with open(f'{self.path}{os.sep}{PREDICTIONS}', 'wb') as f:
             dump(outputs, f)
         return outputs
