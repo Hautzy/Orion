@@ -28,13 +28,7 @@ class SimpleCnn(nn.Module):
                                     kernel_size=kernel_size, bias=True, padding=int(kernel_size / 2))
 
 
-    def forward(self, x, metas):
+    def forward(self, x):
         x = self.hidden_layers(x)
         x = self.last(x)
-
-        cropped_output = torch.zeros(size=(len(metas), 1, c.MAX_CROP_SIZE, c.MAX_CROP_SIZE)).to(c.device)
-        for i, meta in enumerate(metas):
-            (st_x, st_y), (en_x, en_y) = meta.get_coordinates()
-            cropped_output[i, 0, :meta.height, :meta.width] = x[i, 0, st_y:en_y, st_x:en_x]
-
-        return cropped_output
+        return x

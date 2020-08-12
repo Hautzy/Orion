@@ -43,7 +43,7 @@ RANDOM_CROPS_PER_IMAGE = 10
 # dataset and dataloader
 TRAIN_BATCH_SIZE = 16
 VALIDATION_BATCH_SIZE = 64
-TEST_BATCH_SIZE = 1
+TEST_BATCH_SIZE = 4
 PKL_BEST_MODEL = 'best_model.pk'
 PKL_PREDICTIONS = 'predictions.pk'
 EXPERIMENT_RESULTS = 'exp_results.txt'

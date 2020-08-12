@@ -42,7 +42,7 @@ def train(experiment_name, params):
     validation_losses = list()
 
     for current_epoch in range(max_epochs):
-        for X, y, metas in train_loader:
+        for X, y, metas, _ in train_loader:
             X = X.to(device)
             y = y.to(device)
             outputs = model(X, metas)

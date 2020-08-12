@@ -14,7 +14,7 @@ from utils.logger import Logger
 import matplotlib.pyplot as plt
 
 LOG_PER_BATCHES = 25
-TEST_VALIDATION_SET_PER_BATCHES = 1000
+TEST_VALIDATION_SET_PER_BATCHES = 500
 REPORT = 'report.json'
 BEST_MODEL = 'best_model.pk'
 PREDICTIONS = 'predictions.pk'
@@ -55,13 +55,13 @@ class Experiment:
 
         current_batch = 0
         for current_epoch in range(max_epochs):
-            for X, y, metas in train_loader:
+            for X, y, crop_metas, _ in train_loader:
                 X = X.to(c.device)
                 y = y.to(c.device)
-                outputs = model(X, metas)
-                # TODO: fit to right size for loss
+                outputs = model(X)
                 optimizer.zero_grad()
-                loss = mse(outputs, y)
+                # so there are models which return 21x21 and those who return the full image
+                loss = self.calculate_loss(outputs, X, y, crop_metas, mse)
                 loss.backward()
                 optimizer.step()
 
@@ -77,18 +77,39 @@ class Experiment:
             current_batch = 0
 
         self.test_validation_set(model, validation_loader)
+
         del model, mse
-        self.print_stats(validation_loader, test_loader)
+        self.print_stats(test_loader)
         self.logger.log('Finished Training')
 
-    def print_stats(self, validation_loader, test_loader):
+    def calculate_loss(self, outputs, X, y, crop_metas, mse):
+        if outputs.shape[3] == c.MAX_CROP_SIZE:
+            cropped_output = torch.zeros(size=(len(crop_metas), 1, c.MAX_CROP_SIZE, c.MAX_CROP_SIZE)).to(c.device)
+            for i, meta in enumerate(crop_metas):
+                (st_x, st_y), (en_x, en_y) = meta.get_coordinates()
+                cropped_output[i, 0, :meta.height, :meta.width] = outputs[i, 0, st_y:en_y, st_x:en_x]
+            del cropped_output
+            return mse(outputs, y)
+        else:
+            images = torch.zeros(size=(len(crop_metas), 1, c.MAX_SAMPLE_HEIGHT, c.MAX_SAMPLE_WIDTH))
+            for i, crop_meta in enumerate(crop_metas):
+                (st_x, st_y), (en_x, en_y) = crop_meta.get_coordinates()
+                images[i, 0, :, :] = X[i, 0, :, :].clone().detach()
+                images[i, 0, st_y:en_y, st_x:en_x] = y[i, 0, :crop_meta.height, :crop_meta.width]
+            images = images.to(c.device)
+            loss = mse(images, outputs)
+            del images
+            return loss
+
+
+    def print_stats(self, test_loader):
         best_model = torch.load(f'{self.path}{os.sep}{BEST_MODEL}').to(c.device)
-        test_loss = self.evaluate_model(best_model, test_loader).item()
+        test_loss = self.evaluate_model(best_model, test_loader)
 
         self.stats.best_test_loss = test_loss
 
         submission_outputs = self.create_submission_predictions(best_model)
-        self.scoring(submission_outputs)
+        self.submission_scoring(submission_outputs)
 
         self.logger.log(f'Best model validation loss: {self.stats.best_validation_loss}')
         self.logger.log(f'Best model test loss: {test_loss}')
@@ -118,29 +139,28 @@ class Experiment:
             self.stats.best_validation_loss = current_validation_loss
             torch.save(model, f'{self.path}{os.sep}{BEST_MODEL}')
 
-    @staticmethod
-    def evaluate_model(model, data_loader):
+
+    def evaluate_model(self, model, data_loader):
         mses = np.zeros(shape=len(data_loader))
         mse = nn.MSELoss().to(c.device)
         # total_pixel_mean = get_latest_total_mean()
 
         with torch.no_grad():
-            for i, (X, y, metas) in enumerate(data_loader):
+            for i, (X, y, metas, _) in enumerate(data_loader):
                 X = X.to(c.device)
-                output = model(X, metas)
-                cpu_output = output.cpu().detach()
-                y *= c.MAX_PIXEL_VALUE
-                cpu_output *= c.MAX_PIXEL_VALUE
-
+                outputs = model(X)
+                # cpu_output = output.cpu().detach()
+                # y *= c.MAX_PIXEL_VALUE
+                # cpu_output *= c.MAX_PIXEL_VALUE
                 # TODO: reintroduce normalizing pixel values
                 # y += total_pixel_mean
                 # output += total_pixel_mean
-
-                mses[i] = mse(y, cpu_output)
-                del X, output
+                loss = self.calculate_loss(outputs, X, y, metas, mse)
+                mses[i] = loss.item()
+                del X
         return np.mean(mses)
 
-    def scoring(self, predictions=None):
+    def submission_scoring(self, predictions=None):
         if predictions is None:
             with open(f'{self.path}{os.sep}{PREDICTIONS}', 'rb') as f:
                 predictions = load(f)
@@ -200,14 +220,17 @@ class Experiment:
             y_shape = sample.y.shape
             y[0, 0, :y_shape[0], :y_shape[1]] = sample.y
 
-            output = model(X, [crop_meta])
+            output = model(X)
             cpu_output = output.cpu().detach().numpy()
             del output
             #cpu_output += total_pixel_mean
             cpu_output *= c.MAX_PIXEL_VALUE
 
-            outputs.append(cpu_output[0, 0, :crop_meta.height, :crop_meta.width])
-        self.logger.log(f'Tested {ind+1} samples')
+            if cpu_output.shape[2] == c.MAX_CROP_SIZE:
+                outputs.append(cpu_output[0, 0, :crop_meta.height, :crop_meta.width])
+            else:
+                outputs.append(cpu_output[0, 0, st_y:en_y, st_x:en_x])
+        self.logger.log(f'Tested {ind+1} submission samples')
         del model
         with open(f'{self.path}{os.sep}{PREDICTIONS}', 'wb') as f:
             dump(outputs, f)

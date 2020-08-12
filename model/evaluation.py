@@ -15,7 +15,7 @@ def evaluate_model(model, data_loader):
     total_pixel_mean = get_latest_total_mean()
 
     with torch.no_grad():
-        for i, (X, y, metas) in enumerate(data_loader):
+        for i, (X, y, metas, _) in enumerate(data_loader):
             X = X.to(c.device)
             output = model(X, metas)
             # testing with real pixel values

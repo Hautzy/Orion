@@ -1,5 +1,6 @@
 import config as c
 from dataset.dataset_provider import DataSetProvider
+from model.auto_encoder import AutoEncoder
 from model.experiment import Experiment
 from model.simple_conv_net import SimpleCnn
 from model.submission import create_submission_predictions, scoring
@@ -28,7 +29,7 @@ def run_experiment(name, model, params):
 def run_multiple_experiments():
     names = ['new_exp']
     params = [{'lr':1e-3, 'wd': 1e-5}]
-    models = [SimpleCnn(1)]
+    models = [AutoEncoder()]
     for ind in range(len(names)):
         run_experiment(names[ind], models[ind], params[ind])
 
