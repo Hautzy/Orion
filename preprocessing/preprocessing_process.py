@@ -6,6 +6,7 @@ import numpy as np
 from PIL import Image
 
 import config as c
+import feature_flag as ff
 from preprocessing.crop_meta import CropMeta
 from preprocessing.crop_utils import get_random_crop_size_and_center
 from utils.logger import Logger
@@ -31,7 +32,9 @@ class PreprocessingProcess(Process):
                 image_copy = image.copy()
                 rotated_image = self.rotate_image(image_copy, deg)
                 image_array = np.array(rotated_image, dtype='float32')
-                image_array /= c.MAX_PIXEL_VALUE    # normalize
+
+                if ff.SCALE_DATA_0_1:
+                    image_array /= c.MAX_PIXEL_VALUE    # normalize
 
                 image_uuid = uuid.uuid4()
                 crop_metas = list()

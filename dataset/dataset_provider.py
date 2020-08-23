@@ -1,4 +1,5 @@
 import os
+import feature_flag as ff
 import config as c
 import numpy as np
 
@@ -37,9 +38,10 @@ class DataSetProvider:
 
         total_sample_len = len(train_set_indices) + len(test_set_indices) + len(validation_set_indices)
 
-        normalizer = PixelNormalizer(indices=train_set_indices, process_nom=process_nom)
-        normalizer.start_fit()
-        #normalizer.start_transform(total_sample_len)
+        if ff.NORMALIZE_DATA_GLOBAL_MEAN:
+            normalizer = PixelNormalizer(indices=train_set_indices, process_nom=process_nom)
+            normalizer.start_fit()
+            normalizer.start_transform(total_sample_len)
 
     def create_datasets(self):
         train_set_indices, test_set_indices, validation_set_indices = self.determine_datasets_sample_distribution()

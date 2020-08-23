@@ -7,14 +7,16 @@ import torch
 from torch import nn
 
 import config as c
+import feature_flag as ff
 from dataset.crop_data_loader import create_data_loaders
 from preprocessing.crop_meta import CropMeta
+from preprocessing.pixel_normalizer import get_latest_total_mean
 from preprocessing.sample import Sample
 from utils.logger import Logger
 import matplotlib.pyplot as plt
 
-LOG_PER_BATCHES = 25
-TEST_VALIDATION_SET_PER_BATCHES = 500
+LOG_PER_BATCHES = 250
+TEST_VALIDATION_SET_PER_BATCHES = 2500
 REPORT = 'report.json'
 BEST_MODEL = 'best_model.pk'
 PREDICTIONS = 'predictions.pk'
@@ -60,8 +62,8 @@ class Experiment:
                 y = y.to(c.device)
                 outputs = model(X)
                 optimizer.zero_grad()
-                # so there are models which return 21x21 and those who return the full image
-                loss = self.calculate_loss(outputs, X, y, crop_metas, mse)
+                # models should always return 100x100 images which are then cropped and run against the loss function
+                loss = self.calculate_loss(outputs, y, crop_metas, mse)
                 loss.backward()
                 optimizer.step()
 
@@ -75,6 +77,8 @@ class Experiment:
                     self.test_validation_set(model, validation_loader)
                 del X, y, outputs
             current_batch = 0
+            learning_rate /= 2
+            weight_decay /= 2
 
         self.test_validation_set(model, validation_loader)
 
@@ -82,25 +86,15 @@ class Experiment:
         self.print_stats(test_loader)
         self.logger.log('Finished Training')
 
-    def calculate_loss(self, outputs, X, y, crop_metas, mse):
-        if outputs.shape[3] == c.MAX_CROP_SIZE:
-            cropped_output = torch.zeros(size=(len(crop_metas), 1, c.MAX_CROP_SIZE, c.MAX_CROP_SIZE)).to(c.device)
-            for i, meta in enumerate(crop_metas):
-                (st_x, st_y), (en_x, en_y) = meta.get_coordinates()
-                cropped_output[i, 0, :meta.height, :meta.width] = outputs[i, 0, st_y:en_y, st_x:en_x]
-            del cropped_output
-            return mse(outputs, y)
-        else:
-            images = torch.zeros(size=(len(crop_metas), 1, c.MAX_SAMPLE_HEIGHT, c.MAX_SAMPLE_WIDTH))
-            for i, crop_meta in enumerate(crop_metas):
-                (st_x, st_y), (en_x, en_y) = crop_meta.get_coordinates()
-                images[i, 0, :, :] = X[i, 0, :, :].clone().detach()
-                images[i, 0, st_y:en_y, st_x:en_x] = y[i, 0, :crop_meta.height, :crop_meta.width]
-            images = images.to(c.device)
-            loss = mse(images, outputs)
-            del images
-            return loss
-
+    @staticmethod
+    def calculate_loss(outputs, y, crop_metas, mse):
+        cropped_outputs = torch.zeros(size=(len(crop_metas), 1, c.MAX_CROP_SIZE, c.MAX_CROP_SIZE)).to(c.device)
+        for i, meta in enumerate(crop_metas):
+            (st_x, st_y), (en_x, en_y) = meta.get_coordinates()
+            cropped_outputs[i, 0, :meta.height, :meta.width] = outputs[i, 0, st_y:en_y, st_x:en_x]
+        loss = mse(y, cropped_outputs)
+        del cropped_outputs
+        return loss
 
     def print_stats(self, test_loader):
         best_model = torch.load(f'{self.path}{os.sep}{BEST_MODEL}').to(c.device)
@@ -139,23 +133,27 @@ class Experiment:
             self.stats.best_validation_loss = current_validation_loss
             torch.save(model, f'{self.path}{os.sep}{BEST_MODEL}')
 
-
     def evaluate_model(self, model, data_loader):
         mses = np.zeros(shape=len(data_loader))
         mse = nn.MSELoss().to(c.device)
-        # total_pixel_mean = get_latest_total_mean()
+
+        if ff.NORMALIZE_DATA_GLOBAL_MEAN:
+            total_pixel_mean = get_latest_total_mean()
 
         with torch.no_grad():
             for i, (X, y, metas, _) in enumerate(data_loader):
                 X = X.to(c.device)
+                y = y.to(c.device)
                 outputs = model(X)
-                # cpu_output = output.cpu().detach()
-                # y *= c.MAX_PIXEL_VALUE
-                # cpu_output *= c.MAX_PIXEL_VALUE
-                # TODO: reintroduce normalizing pixel values
-                # y += total_pixel_mean
-                # output += total_pixel_mean
-                loss = self.calculate_loss(outputs, X, y, metas, mse)
+
+                if ff.SCALE_DATA_0_1:
+                    y *= c.MAX_PIXEL_VALUE
+                    outputs *= c.MAX_PIXEL_VALUE
+                if ff.NORMALIZE_DATA_GLOBAL_MEAN:
+                    y += total_pixel_mean
+                    outputs += total_pixel_mean
+
+                loss = self.calculate_loss(outputs, y, metas, mse)
                 mses[i] = loss.item()
                 del X
         return np.mean(mses)
@@ -190,7 +188,8 @@ class Experiment:
         crop_centers = test_set['crop_centers']
         images = test_set['images']
         model = model.to(c.device)
-        #total_pixel_mean = get_latest_total_mean()
+        if ff.NORMALIZE_DATA_GLOBAL_MEAN:
+            total_pixel_mean = get_latest_total_mean()
         outputs = list()
 
         for ind in range(len(images)):
@@ -198,8 +197,11 @@ class Experiment:
             crop_center = crop_centers[ind]
             image = images[ind]
             image = np.array(image, dtype='float64')
-            image /= c.MAX_PIXEL_VALUE
-            #TODO: image -= total_pixel_mean
+
+            if ff.SCALE_DATA_0_1:
+                image /= c.MAX_PIXEL_VALUE
+            if ff.NORMALIZE_DATA_GLOBAL_MEAN:
+                image -= total_pixel_mean
 
             crop_meta = CropMeta(crop_size, crop_center)
 
@@ -223,14 +225,14 @@ class Experiment:
             output = model(X)
             cpu_output = output.cpu().detach().numpy()
             del output
-            #cpu_output += total_pixel_mean
-            cpu_output *= c.MAX_PIXEL_VALUE
 
-            if cpu_output.shape[2] == c.MAX_CROP_SIZE:
-                outputs.append(cpu_output[0, 0, :crop_meta.height, :crop_meta.width])
-            else:
-                outputs.append(cpu_output[0, 0, st_y:en_y, st_x:en_x])
-        self.logger.log(f'Tested {ind+1} submission samples')
+            if ff.NORMALIZE_DATA_GLOBAL_MEAN:
+                cpu_output += total_pixel_mean
+            if ff.SCALE_DATA_0_1:
+                cpu_output *= c.MAX_PIXEL_VALUE
+
+            outputs.append(cpu_output[0, 0, st_y:en_y, st_x:en_x])  # add crop out result from model
+        self.logger.log(f'Tested {ind + 1} submission samples')
         del model
         with open(f'{self.path}{os.sep}{PREDICTIONS}', 'wb') as f:
             dump(outputs, f)
