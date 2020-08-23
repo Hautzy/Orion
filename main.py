@@ -1,6 +1,7 @@
 import feature_flag as ff
 import config as c
 from dataset.dataset_provider import DataSetProvider
+from model.final_submission import create_final_predictions
 from model.types.basic_conv import BasicConv
 from model.experiment import Experiment
 from model.types.simple_conv_net import SimpleCnn
@@ -35,3 +36,6 @@ if ff.CREATE_DATA:
     create_and_scale_data(16)
 if ff.TRAIN_MODELS:
     run_multiple_experiments()
+
+c.create_folders()
+create_final_predictions('simple_cnn_hl_6_b_3_md')

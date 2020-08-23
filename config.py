@@ -25,6 +25,9 @@ FILE_TOTAL_IMAGE_MEAN = FOLDER_PATH_PREPROCESSING + os.sep + 'total_image_mean.n
 FILE_SUBMISSION_TESTING_RAW_DATA = FOLDER_PATH_TEST_DATA + os.sep + 'raw_data.pk'
 FILE_SUBMISSION_TESTING_TARGETS = FOLDER_PATH_TEST_DATA + os.sep + 'targets.pk'
 
+FINAL_SUBMISSION_RAW_DATA = FOLDER_PATH_TEST_DATA + os.sep + 'challenge_testset.pkl'
+FINAL_SUBMISSION_FOLDER = 'FINAL'
+
 # image constraints
 MIN_SAMPLE_WIDTH = 70
 MIN_SAMPLE_HEIGHT = 70
@@ -65,6 +68,7 @@ def create_folders():
     create_folder(FOLDER_PATH_PREPROCESSING)
     create_folder(FOLDER_PATH_INSPECTION)
     create_folder(FOLDER_PATH_MAIN_EXPERIMENTS)
+    create_folder(FINAL_SUBMISSION_FOLDER)
 
 
 def create_folder(path):
